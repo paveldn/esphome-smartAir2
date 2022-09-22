@@ -1,5 +1,7 @@
 substitutions:
   device_name: Haier AC
+  device_id: haier_climate
+  uart_id: ac_port 
 
 esphome:
   name: haier
@@ -17,7 +19,7 @@ uart:
   baud_rate: 9600
   tx_pin: 1
   rx_pin: 3
-  id: ac_port  
+  id: ${uart_id} 
     
 logger:
   level: DEBUG
@@ -36,5 +38,33 @@ ota:
 
 climate:
   - platform: haier
+    id: ${device_id}
     name: ${device_name} 
-    uart_id: ac_port
+    uart_id: ${uart_id}
+    beeper: true                # Optional, default true, disables beep on commands from ESP
+
+switch:
+  - platform: template
+    id: ${device_id}_display_switch
+    name: ${device_name} display
+    icon: mdi:led-on
+    entity_category: config
+    lambda: |-
+      return id(${device_id}).get_display_state();
+    turn_on_action:
+      climate.haier.display_on: ${device_id}
+    turn_off_action:
+      climate.haier.display_off: ${device_id}
+  - platform: template
+    id: ${device_id}_beeper_switch
+    entity_category: config
+    name: ${device_name} beeper
+    icon: mdi:volume-high
+    lambda: |-
+      return id(${device_id}).get_beeper_echo();
+    turn_on_action:
+      climate.haier.beeper_on: ${device_id}
+    turn_off_action:
+      climate.haier.beeper_off: ${device_id}
+  - platform: restart
+    name: ${device_name} restart

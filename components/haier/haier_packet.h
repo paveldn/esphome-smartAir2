@@ -51,16 +51,16 @@ struct HaierPacketControl
     /* 27 */    uint8_t             ac_power:1;                 // Is ac on or off
                 uint8_t             :2;
                 uint8_t             health_mode:1;              // Health mode on or off
-				uint8_t				compressor:1;				// Compressor on or off ???
+                uint8_t             compressor:1;               // Compressor on or off ???
                 uint8_t             :0;
     /* 28 */    uint8_t             :8;
     /* 29 */    uint8_t             use_swing_bits:1;           // Indicate if horizontal_swing and vertical_swing should be used
-				uint8_t				turbo_mode:1;				// Turbo mode
-				uint8_t				silent_mode:1;				// Silent mode
-				uint8_t				horizontal_swing:1;			// Horizontal swing (if swing_both == 0)
-				uint8_t				vertical_swing:1;			// Vertical swing (if swing_both == 0) if vertical_swing and horizontal_swing both 0 => swing off
-				uint8_t				led_on_off:1;				// Led on or off
-				uint8_t				:0;
+                uint8_t             turbo_mode:1;               // Turbo mode
+                uint8_t             disable_beeper:1;           // Silent mode
+                uint8_t             horizontal_swing:1;         // Horizontal swing (if swing_both == 0)
+                uint8_t             vertical_swing:1;           // Vertical swing (if swing_both == 0) if vertical_swing and horizontal_swing both 0 => swing off
+                uint8_t             display_off:1;              // Led on or off
+                uint8_t             :0;
     /* 30 */    uint8_t             :8;
     /* 31 */    uint8_t             :8;
     /* 32 */    uint8_t             :8;
