@@ -40,8 +40,6 @@ public:
     void loop() override;
     void control(const esphome::climate::ClimateCall &call) override;
     float get_setup_priority() const override { return esphome::setup_priority::HARDWARE ; }
-    void set_beeper_echo(bool beeper);
-    bool get_beeper_echo() const;
     void set_display_state(bool state);
     bool get_display_state() const;
 protected:
@@ -67,7 +65,6 @@ private:
     uint8_t*            mLastPacket;
     uint8_t             mFanModeFanSpeed;
     uint8_t             mOtherModesFanSpeed;
-    bool                mBeeperEcho;    
     bool                mDisplayStatus;
     bool                mForceSendControl;
     esphome::climate::ClimateTraits         mTraits;

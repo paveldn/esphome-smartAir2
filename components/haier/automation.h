@@ -35,33 +35,6 @@ protected:
     HaierClimate* parent_;
 };
 
-template<typename... Ts> 
-class BeeperOnAction : public Action<Ts...> 
-{
-public:
-    BeeperOnAction(HaierClimate* parent) : parent_(parent) {}
-    void play(Ts... x) 
-    {
-        this->parent_->set_beeper_echo(true);
-    }
-
-protected:
-    HaierClimate* parent_;
-};
-
-template<typename... Ts> 
-class BeeperOffAction : public Action<Ts...> 
-{
-public:
-    BeeperOffAction(HaierClimate* parent) : parent_(parent) {}
-    void play(Ts... x) 
-    {
-        this->parent_->set_beeper_echo(false);
-    }
-
-protected:
-    HaierClimate* parent_;
-};
 
 }
 }

@@ -151,16 +151,6 @@ HaierClimate::~HaierClimate()
     delete[] mLastPacket;
 }
 
-void HaierClimate::set_beeper_echo(bool beeper)
-{
-    mBeeperEcho = beeper;
-}
-
-bool HaierClimate::get_beeper_echo() const
-{
-    return mBeeperEcho;
-}
-
 bool HaierClimate::get_display_state() const
 {
     return mDisplayStatus;
@@ -515,7 +505,6 @@ void HaierClimate::sendControlPacket(const ClimateCall* climateControl)
         if (climateControl->get_target_temperature().has_value())
             outData.control.set_point = *climateControl->get_target_temperature() - 16; //set the temperature at our offset, subtract 16.
     }
-    outData.control.disable_beeper = (!mBeeperEcho || (climateControl == NULL)) ? 1 : 0;
     outData.control.display_off = mDisplayStatus ? 0 : 1;   
     sendData(controlOutBuffer, controlOutBuffer[0], false);
 }
