@@ -1,0 +1,29 @@
+external_components:
+  source:
+    type: local
+    path: ./components
+
+climate:
+  - platform: haier
+    id: ${device_id}
+    name: ${device_name} 
+    uart_id: ${uart_id}
+    visual:                     # Optional, you can use it to limit min and max temperatures in UI (not working for remote!)
+      min_temperature: 16 °C
+      max_temperature: 30 °C
+      temperature_step: 1 °C
+
+switch:
+  - platform: template
+    id: ${device_id}_display_switch
+    name: ${device_name} display
+    icon: mdi:led-on
+    entity_category: config
+    lambda: |-
+      return id(${device_id}).get_display_state();
+    turn_on_action:
+      climate.haier.display_on: ${device_id}
+    turn_off_action:
+      climate.haier.display_off: ${device_id}
+  - platform: restart
+    name: ${device_name} restart
