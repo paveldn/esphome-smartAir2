@@ -1,34 +1,21 @@
-﻿#ifndef HAIER_PACKET_H
-#define HAIER_PACKET_H
+﻿#pragma once
 
-enum ConditioningMode
-{
-    ConditioningAuto            = 0x00,
-    ConditioningCool            = 0x01,
-    ConditioningHeat            = 0x02,
-    ConditioningFan             = 0x03,
-    ConditioningDry             = 0x04
+namespace esphome {
+namespace haier {
+namespace smartair2_protocol {
+
+enum class ConditioningMode : uint8_t {
+  AUTO = 0x00,
+  COOL = 0x01,
+  HEAT = 0x02,
+  FAN = 0x03,
+  DRY = 0x04
 };
+	
+enum class FanMode : uint8_t { FAN_HIGH = 0x00, FAN_MID = 0x01, FAN_LOW = 0x02, FAN_AUTO = 0x03 };
 
-enum FanMode
-{
-    FanHigh                     = 0x00,
-    FanMid                      = 0x01,
-    FanLow                      = 0x02,
-    FanAuto                     = 0x03
-};
 
-struct HaierPacketHeader
-{
-    // We skip start packet indication (0xFF 0xFF)
-    /*  0 */    uint8_t             msg_length;                 // message length
-    /*  1 */    uint8_t             reserved[6];                // 0x00 0x00 0x00 0x00 0x00 0x01
-    /*  7 */    uint8_t             msg_type;                   // type of message
-    /*  8 */    uint8_t             arguments[2];
-};
-
-struct HaierPacketControl
-{
+struct HaierPacketControl {
     // Control bytes starts here
     /* 10 */    uint8_t             :8;
     /* 11 */    uint8_t             room_temperature;           // current room temperature 1°C step
@@ -59,7 +46,7 @@ struct HaierPacketControl
                 uint8_t             disable_beeper:1;           // Silent mode
                 uint8_t             horizontal_swing:1;         // Horizontal swing (if swing_both == 0)
                 uint8_t             vertical_swing:1;           // Vertical swing (if swing_both == 0) if vertical_swing and horizontal_swing both 0 => swing off
-                uint8_t             display_off:1;              // Led on or off
+                uint8_t             display_status:1;              // Led on or off
                 uint8_t             :0;
     /* 30 */    uint8_t             :8;
     /* 31 */    uint8_t             :8;
@@ -67,19 +54,19 @@ struct HaierPacketControl
     /* 33 */    uint8_t             set_point;                  // Target temperature with 16°C offset, 1°C step
 };
 
-struct HaierStatus
-{
-    HaierPacketHeader   header;
-    HaierPacketControl  control;
+struct HaierStatus {
+  uint16_t subcommand;
+  HaierPacketControl control;
 };
 
-struct HaierControl
-{
-    HaierPacketHeader   header;
-    HaierPacketControl  control;
+
+enum class FrameType : uint8_t {
+  CONTROL = 0x01,
+  STATUS = 0x02,
+  INVALID = 0x03,
+  NO_COMMAND = 0xFF,
 };
 
-#define CONTROL_PACKET_SIZE         (sizeof(HaierPacketHeader) + sizeof(HaierPacketControl))
-#define HEADER_SIZE                 (sizeof(HaierPacketHeader))
-
-#endif // HAIER_PACKET_H
+}  // namespace smartair2_protocol
+}  // namespace haier
+}  // namespace esphome

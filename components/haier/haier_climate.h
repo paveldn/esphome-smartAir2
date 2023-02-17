@@ -1,83 +1,100 @@
-#ifndef _HAIER_CLIMATE_H
-#define _HAIER_CLIMATE_H
+#pragma once
 
 #include <chrono>
+#include <set>
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
-
-#if ESP8266
-// No mutexes for ESP8266 just make dummy classes and pray...
-struct Mutex
-{
-    void lock() {};
-    void unlock() {};
-};
-
-struct Lock
-{
-    Lock(const Mutex&) {};
-}; 
-#else
-#include <mutex>
-typedef std::mutex Mutex;
-typedef std::lock_guard<Mutex> Lock;
-#endif
+// HaierProtocol
+#include <protocol/haier_protocol.h>
 
 namespace esphome {
 namespace haier {
 
-class HaierClimate :    public esphome::Component,
-                        public esphome::climate::Climate,
-                        public esphome::uart::UARTDevice
-{
-public:
-    HaierClimate() = delete;
-    HaierClimate(const HaierClimate&) = delete;
-    HaierClimate& operator=(const HaierClimate&) = delete;
-    HaierClimate(esphome::uart::UARTComponent* parent);
-    ~HaierClimate();
-    void setup() override;
-    void loop() override;
-    void control(const esphome::climate::ClimateCall &call) override;
-    float get_setup_priority() const override { return esphome::setup_priority::HARDWARE ; }
-    void set_display_state(bool state);
-    bool get_display_state() const;
-protected:
-    esphome::climate::ClimateTraits traits() override;
-    void sendData(const uint8_t * message, size_t size, bool withCrc = true);
-    void processStatus(const uint8_t* packet, uint8_t size);
-    void handleIncomingPacket();
-    void getSerialData();
-    void sendControlPacket(const esphome::climate::ClimateCall* control = NULL);
-private:
-    enum ProtocolPhases
-    {
-        // Initialization
-        psSendingFirstStatusRequest = 0,
-        psWaitingFirstStatusAnswer,
-        // Functional state
-        psIdle,
-        psSendingStatusRequest,
-        psWaitingStatusAnswer,
-    };
-    ProtocolPhases      mPhase;
-    Mutex               mReadMutex;
-    uint8_t*            mLastPacket;
-    uint8_t             mFanModeFanSpeed;
-    uint8_t             mOtherModesFanSpeed;
-    bool                mDisplayStatus;
-    bool                mForceSendControl;
-    esphome::climate::ClimateTraits         mTraits;
-    std::chrono::steady_clock::time_point   mLastByteTimestamp;         // For packet timeout
-    std::chrono::steady_clock::time_point   mLastRequestTimestamp;      // For answer timeout
-    std::chrono::steady_clock::time_point   mLastValidStatusTimestamp;  // For protocol timeout
-    std::chrono::steady_clock::time_point   mLastStatusRequest; // To request AC status
-    std::chrono::steady_clock::time_point   mLastSignalRequest; // To send WiFI signal level
+class HaierClimate : public esphome::Component,
+                     public esphome::climate::Climate,
+                     public esphome::uart::UARTDevice,
+                     public haier_protocol::ProtocolStream {
+ public:
+  HaierClimate() = delete;
+  HaierClimate(const HaierClimate &) = delete;
+  HaierClimate &operator=(const HaierClimate &) = delete;
+  HaierClimate(esphome::uart::UARTComponent *parent);
+  ~HaierClimate();
+  void setup() override;
+  void loop() override;
+  void control(const esphome::climate::ClimateCall &call) override;
+  void dump_config() override;
+  float get_setup_priority() const override { return esphome::setup_priority::HARDWARE; }
+  void set_fahrenheit(bool fahrenheit);
+  void set_display_state(bool state);
+  bool get_display_state() const;
+  void set_supported_modes(const std::set<esphome::climate::ClimateMode> &modes);
+  void set_supported_swing_modes(const std::set<esphome::climate::ClimateSwingMode> &modes);
+  virtual size_t available() noexcept { return esphome::uart::UARTDevice::available(); };
+  virtual size_t read_array(uint8_t *data, size_t len) noexcept {
+    return esphome::uart::UARTDevice::read_array(data, len) ? len : 0;
+  };
+  virtual void write_array(const uint8_t *data, size_t len) noexcept {
+    esphome::uart::UARTDevice::write_array(data, len);
+  };
+  bool can_send_message() const { return haier_protocol_.get_outgoing_queue_size() == 0; };
 
+ protected:
+  enum class ProtocolPhases {
+    UNKNOWN = -1,
+    // INITIALIZATION
+    SENDING_FIRST_STATUS_REQUEST = 4,
+    WAITING_FIRST_STATUS_ANSWER = 5,
+    // FUNCTIONAL STATE
+    IDLE = 8,
+    SENDING_STATUS_REQUEST = 9,
+    WAITING_STATUS_ANSWER = 10,
+    SENDING_CONTROL = 15,
+    WAITING_CONTROL_ANSWER = 16,
+    NUM_PROTOCOL_PHASES
+  };
+  esphome::climate::ClimateTraits traits() override;
+  // Answers handlers
+  haier_protocol::HandlerError answer_preprocess_(uint8_t requestMessageType, uint8_t expectedRequestMessageType,
+                                                  uint8_t answerMessageType, uint8_t expectedAnswerMessageType,
+                                                  ProtocolPhases expectedPhase);
+  haier_protocol::HandlerError status_handler_(uint8_t requestType, uint8_t messageType, const uint8_t *data,
+                                               size_t dataSize);
+  // Timeout handler
+  haier_protocol::HandlerError timeout_default_handler_(uint8_t requestType);
+  // Helper functions
+  haier_protocol::HandlerError process_status_message_(const uint8_t *packet, uint8_t size);
+  void send_message_(const haier_protocol::HaierMessage &command);
+  haier_protocol::HaierMessage get_control_message_();
+  void set_phase_(ProtocolPhases phase);
+
+  struct HvacSettings {
+    esphome::optional<esphome::climate::ClimateMode> mode;
+    esphome::optional<esphome::climate::ClimateFanMode> fan_mode;
+    esphome::optional<esphome::climate::ClimateSwingMode> swing_mode;
+    esphome::optional<float> target_temperature;
+    esphome::optional<esphome::climate::ClimatePreset> preset;
+    bool valid;
+    HvacSettings() : valid(false){};
+    void reset();
+  };
+  haier_protocol::ProtocolHandler haier_protocol_;
+  ProtocolPhases protocol_phase_;
+  std::unique_ptr<uint8_t[]> last_status_message_;
+  uint8_t fan_mode_speed_;
+  uint8_t other_modes_fan_speed_;
+  bool display_status_;
+  bool force_send_control_;
+  bool forced_publish_;
+  bool forced_request_status_;
+  bool control_called_;
+  esphome::climate::ClimateTraits traits_;
+  HvacSettings hvac_settings_;
+  std::chrono::steady_clock::time_point last_request_timestamp_;       // For interval between messages
+  std::chrono::steady_clock::time_point last_valid_status_timestamp_;  // For protocol timeout
+  std::chrono::steady_clock::time_point last_status_request_;          // To request AC status
+  std::chrono::steady_clock::time_point control_request_timestamp_;  // To send control message
 };
 
 } // namespace haier
 } // namespace esphome
-
-
-#endif // _HAIER_CLIMATE_H

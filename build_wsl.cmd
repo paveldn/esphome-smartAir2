@@ -1,6 +1,6 @@
 @echo off
 if [%1] == [] goto err
-powershell -command "esphome compile %1 2>&1 | ? {$_.ToString().trim().Length -ne \"\" } | tee -filepath buildlog.txt"
+wsl --cd "%cd%" /bin/sh -c "esphome compile %1 2>&1 | tee buildlog.txt"
 goto:eof
 :err
 echo Please use with esphome configuration as parameter
